@@ -1,6 +1,7 @@
 import os 
 import shutil
 
+
 TXT_FOLDER = "minc-2500/labels"
 
 IMAGE_FOLDER = "minc-2500/images"
@@ -9,9 +10,13 @@ OUTPUT_FOLDER = "dataset"
 
 USED_MATS = []
 
+NO_USE = ["food","hair","mirror","wallpaper","water"]
+
 with open('minc-2500/categories.txt') as file:
     for line in file:
-        USED_MATS.append(line.strip())
+        cline = line.strip()
+        if (cline not in NO_USE):
+            USED_MATS.append(cline)
 
 def prepare_split(txt_filename,split_name):
     txt_path = os.path.join(TXT_FOLDER,txt_filename)
