@@ -181,3 +181,4 @@ cython_debug/
 .cursorindexingignore
 /minc-2500
 /dataset
+/manuelTests

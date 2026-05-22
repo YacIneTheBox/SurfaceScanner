@@ -42,7 +42,6 @@ def prepare_split(txt_filename,split_name):
             dest_path = os.path.join(dest_dir,filename)
 
             if os.path.exists(src_path) and not os.path.exists(dest_path):
-                print("copie pas")
                 shutil.copy(src_path,dest_path)
                 compteur += 1
 
