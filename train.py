@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets,transforms,models
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+import copy
 
 NUM_CLASSES = 18
 BATCH_SIZE = 32
@@ -59,6 +60,9 @@ criterion = nn.CrossEntropyLoss()
 def train_model(epochs, optimizer, phase_name, scheduler=None):
     print(f"\n=== DÉMARRAGE {phase_name} ({epochs} Epochs) ===")
     
+    best_val_loss = float('inf') # On initialise le record à l'infini
+    best_model_weights = copy.deepcopy(model.state_dict())
+
     for epoch in range(epochs):
         # --- PHASE D'ENTRAÎNEMENT ---
         model.train()
@@ -92,14 +96,25 @@ def train_model(epochs, optimizer, phase_name, scheduler=None):
         
         print(f"Epoch {epoch+1}/{epochs} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
         
+        if val_loss < best_val_loss:
+            print(f"   ⭐ Nouveau record ! Val Loss baisse de {best_val_loss:.4f} à {val_loss:.4f}")
+            best_val_loss = val_loss
+            # On copie le cerveau du modèle à cet instant précis
+            best_model_weights = copy.deepcopy(model.state_dict())
+
         # --- ACTIVATION DU SCHEDULER ---
         if scheduler is not None:
-            # On donne la note d'examen au scheduler pour qu'il juge s'il doit agir
-            scheduler.step(val_loss)
-            
-            # Affichage du Learning Rate actuel pour voir quand il baisse
-            current_lr = optimizer.param_groups[0]['lr']
-            print(f"   -> Learning Rate : {current_lr:.6f}")
+                    # On donne la note d'examen au scheduler pour qu'il juge s'il doit agir
+                    scheduler.step(val_loss)
+                    
+                    # Affichage du Learning Rate actuel pour voir quand il baisse
+                    current_lr = optimizer.param_groups[0]['lr']
+                    print(f"   -> Learning Rate : {current_lr:.6f}")
+
+            # LIGNES DÉPLACÉES ICI (En dehors de la boucle 'for', mais dans la fonction 'def')
+        print(f"Fin de la {phase_name}. Restauration du meilleur modèle (Val Loss: {best_val_loss:.4f})")
+        model.load_state_dict(best_model_weights)
+    
 
 # ==========================================
 # PHASE 1 : Entraînement de la "tête" uniquement
@@ -107,7 +122,7 @@ def train_model(epochs, optimizer, phase_name, scheduler=None):
 # Seule la dernière couche apprend. Le reste est bloqué.
 # On utilise un learning rate standard (0.001)
 optimizer_phase1 = optim.Adam(model.fc.parameters(), lr=0.001)
-train_model(epochs=3, optimizer=optimizer_phase1, phase_name="PHASE 1 (Tête uniquement)")
+train_model(epochs=10, optimizer=optimizer_phase1, phase_name="PHASE 1 (Tête uniquement)")
 
 # ==========================================
 # PHASE 2 : Affinage global (Fine-Tuning)
@@ -124,7 +139,7 @@ optimizer_phase2 = optim.Adam(model.parameters(), lr=0.0001)
 scheduler_phase2 = ReduceLROnPlateau(optimizer_phase2, mode='min', factor=0.1, patience=2)
 
 train_model(
-    epochs=3, 
+    epochs=15, 
     optimizer=optimizer_phase2, 
     phase_name="PHASE 2 (Affinage global avec Scheduler)", 
     scheduler=scheduler_phase2
