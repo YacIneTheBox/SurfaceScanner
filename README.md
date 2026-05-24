@@ -10,8 +10,6 @@ Ce projet est un outil d'intelligence artificielle conçu pour identifier rapide
 
 ## 🚀 À propos du projet
 
-L'analyse des surfaces exige souvent une inspection experte. Ce projet automatise cette première étape d'analyse visuelle en s'appuyant sur l'apprentissage profond (Deep Learning).
-
 Le système utilise un réseau de neurones **ResNet**, capable d'analyser les micro-textures, la réflectivité et les motifs géométriques de la surface pour corréler ces signatures visuelles à une base de données de matériaux de référence.
 
 ### ✨ Fonctionnalités clés
