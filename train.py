@@ -4,6 +4,8 @@ import torch.optim as optim
 from torchvision import datasets,transforms,models
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import copy
+from torch.utils.data import WeightedRandomSampler
+import os
 
 NUM_CLASSES = 18
 BATCH_SIZE = 32
@@ -24,9 +26,57 @@ transform_train = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-train_dataset = datasets.ImageFolder(root='dataset/train',transform=transform_train)
-train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=BATCH_SIZE,shuffle=True)
+train_dataset = datasets.ImageFolder(root='dataset/train', transform=transform_train)
 
+# ==========================================
+# CRÉATION DU SAMPLER PONDÉRÉ
+# ==========================================
+print("Analyse des fichiers pour l'échantillonnage pondéré...")
+
+POIDS_NORMAL = 1.0  # Pour MINC et Kaggle
+POIDS_PERSO = 30.0  # Pour tes photos (Mégaphone x50)
+
+poids_des_images = []
+compteur_perso = 0
+
+# train_dataset.samples contient des tuples : (chemin_complet, index_de_la_classe)
+for chemin_image, _ in train_dataset.samples:
+    nom_fichier = os.path.basename(chemin_image).lower()
+    
+    # Règle de détection : adapte "img", "pxl" ou "dsc" selon ce que produit ton téléphone
+    # Si tu as renommé tes photos avec "perso_", ajoute-le dans le tuple !
+    if nom_fichier.startswith(('skin_2026', 'stone_2026', 'sky_2026', 'wood_2026','metal_2026','carpet_2026',
+                               'fabric_2026','painted_2026','glass_2026','foliage_2026','ceramic_2026','leather_2026',
+                               'paper_2026','tile_2026','plastic_2026')):
+        poids_des_images.append(POIDS_PERSO)
+        compteur_perso += 1
+    else:
+        poids_des_images.append(POIDS_NORMAL)
+
+print(f"-> {compteur_perso} photos personnelles identifiées et boostées.")
+
+# Convertir la liste en tenseur PyTorch
+weights_tensor = torch.DoubleTensor(poids_des_images)
+
+# Créer le Sampler
+sampler_pondere = WeightedRandomSampler(
+    weights=weights_tensor,
+    num_samples=len(weights_tensor), # On garde la même taille d'Epoch qu'avant
+    replacement=True # CRUCIAL : Permet de piocher la même photo perso plusieurs fois !
+)
+
+# ==========================================
+# MISE À JOUR DU DATALOADER
+# ==========================================
+# ATTENTION : Il faut obligatoirement enlever 'shuffle=True' quand on utilise un Sampler,
+# car c'est le Sampler qui s'occupe désormais du mélange et du tirage au sort.
+train_loader = torch.utils.data.DataLoader(
+    train_dataset,
+    batch_size=BATCH_SIZE,
+    sampler=sampler_pondere 
+)
+
+# La suite de ton code reste identique (val_dataset, etc.)
 val_dataset = datasets.ImageFolder(root='dataset/val', transform=transform)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
@@ -52,7 +102,7 @@ for param in model.parameters():
 model.fc = nn.Linear(model.fc.in_features, NUM_CLASSES)
 model = model.to(DEVICE)
 
-criterion = nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
 
 # ==========================================
 # FONCTION D'ENTRAÎNEMENT (Pour éviter de répéter le code)
@@ -161,3 +211,6 @@ torch.onnx.export(
 )
 
 print("Modèle exporté sous le nom 'material_resnet_model.onnx' !")
+
+torch.save(model.state_dict(), "material_resnet_model.pth")
+print("Modèle natif PyTorch sauvegardé sous 'material_resnet_model.pth' !")

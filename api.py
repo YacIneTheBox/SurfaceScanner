@@ -31,7 +31,7 @@ except FileNotFoundError:
 
 # Charger le modèle ONNX
 print("Chargement du modèle ONNX en mémoire...")
-ort_session = ort.InferenceSession("material_resnet_model.onnx")
+ort_session = ort.InferenceSession("Models/BestOneResnet.onnx")
 
 # Préparer le pipeline de transformation (Le même que pour tes tests manuels !)
 transform_tta = transforms.Compose([
