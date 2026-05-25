@@ -213,4 +213,4 @@ torch.onnx.export(
 print("Modèle exporté sous le nom 'material_resnet_model.onnx' !")
 
 torch.save(model.state_dict(), "material_resnet_model.pth")
-print("Modèle natif PyTorch sauvegardé sous 'material_resnet_model.pth' !")
+print("Modèle natif PyTorch sauvegardé 'material_resnet_model.pth' !")
