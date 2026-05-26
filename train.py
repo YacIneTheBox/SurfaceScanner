@@ -214,3 +214,5 @@ print("Modèle exporté sous le nom 'material_resnet_model.onnx' !")
 
 torch.save(model.state_dict(), "material_resnet_model.pth")
 print("Modèle natif PyTorch sauvegardé 'material_resnet_model.pth' !")
+
+# i did train the best mod not in this version of the code btw
